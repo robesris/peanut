@@ -1,12 +1,12 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-  "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML>
 <html>
   <head>
-    <script type="text/javascript" src="javascripts/jquery-1.4.2.js"></script>
-    <script type="text/javascript" src="javascripts/jquery.gamequery.soundwrapper.html5-0.4.0.js"></script>
-    <script type="text/javascript" src="javascripts/jquery.gamequery-0.4.0.js"></script>
-    <script type="text/javascript">
-      var MAIN_CALLBACK_RATE = 5;
+    <script type="text/javascript" src="jquery-1.4.2.js"></script>
+    <script type="text/javascript" src="jquery.gamequery.soundwrapper.html5-0.4.0.js"></script>
+    <script type="text/javascript" src="jquery.gamequery-0.4.0.js"></script>
+    <script type="text/javascript">    
+      var PRR = 5;  // Playground Refresh Rate - all other rates should be a multiple of this
+      var MAIN_CALLBACK_RATE = PRR * 1;
     
       var round;
       var peanuts;
@@ -24,7 +24,7 @@
       var PEANUT_DEPLOY_INTERVAL = 5000;  // milliseconds
       var PEANUT_FRAMES = 40;
       var PEANUT_DELTA = 82;
-      var PEANUT_ANIMATION_RATE = 44.0;
+      var PEANUT_ANIMATION_RATE = PRR * 10;
       var PEANUT_MARCH_FRAMES = 2;
       var PEANUT_MARCH_ANIMATION_RATE = 500;
       var PEANUT_HEIGHT = 60;
@@ -38,15 +38,14 @@
       
       var CENTER_Y = PLAYGROUND_HEIGHT / 2;
       var CENTER_X = PLAYGROUND_WIDTH / 2;
-
-      var MEASURE_LENGTH = 100.0;  // length of one measure of the "song" in milliseconds
+      
+      var MARCH_LENGTH = 5000.0;   // length of the "march" sequence in milliseconds
+      
+      var MARCH_ROUND = 6;
+      
+      var PEANUT_SOUND_DURATION = 7 * 1000
       var MAX_MEASURES = 4;       // number of measures in the "song"
-      
-      var MARCH_LENGTH = 500.0;   // length of the "march" sequence in milliseconds
-      
-      var MARCH_ROUND = 5;
-      
-      
+      var MEASURE_LENGTH = PEANUT_SOUND_DURATION / MAX_MEASURES;  // length of one measure of the "song" in milliseconds
       
       
       function Peanut() {
@@ -61,32 +60,36 @@
                                             width: PEANUT_WIDTH });
         this.sprite = $("#peanut_" + peanuts);
         this.h_speed = side == LEFT ? h_speed : -h_speed;
-        this.v_speed = (Math.random() * 20) - 10;
+        this.v_speed = (Math.random() * 2) - 1;
         this.side = side;
-        //this.h_speed = 0;
-        //this.v_speed = 0;
+        // this.h_speed = 0;
+        // this.v_speed = 0;
+        
+        peanut_sound = new Audio("peanut_sound.ogg");
+        peanut_sound.load();
+        peanut_sound.play();
       }
-      Peanut.ANIMATION = new $.gameQuery.Animation({ imageURL: "/images/peanut_best_sprite_transparent.png", 
+      Peanut.ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_best_sprite_transparent.png", 
                                                     numberOfFrame: PEANUT_FRAMES,
                                                     delta: PEANUT_DELTA,
                                                     rate: PEANUT_ANIMATION_RATE,
                                                     type: $.gameQuery.ANIMATION_HORIZONTAL });
-      Peanut.ANIMATION_REVERSE = new $.gameQuery.Animation({ imageURL: "/images/peanut_best_sprite_transparent_reverse.png", 
+      Peanut.ANIMATION_REVERSE = new $.gameQuery.Animation({ imageURL: "peanut_best_sprite_transparent_reverse.png", 
                                                     numberOfFrame: PEANUT_FRAMES,
                                                     delta: PEANUT_DELTA,
                                                     rate: PEANUT_ANIMATION_RATE,
                                                     type: $.gameQuery.ANIMATION_HORIZONTAL });
-      Peanut.MARCH_ANIMATION = new $.gameQuery.Animation({ imageURL: "/images/peanut_march_sprite_transparent.png", 
+      Peanut.MARCH_ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_march_sprite_transparent.png", 
                                                     numberOfFrame: PEANUT_MARCH_FRAMES,
                                                     delta: PEANUT_DELTA,
                                                     rate: PEANUT_MARCH_ANIMATION_RATE,
                                                     type: $.gameQuery.ANIMATION_HORIZONTAL });
-      Peanut.MARCH_ANIMATION_REVERSE = new $.gameQuery.Animation({ imageURL: "/images/peanut_march_sprite_transparent_reverse.png", 
+      Peanut.MARCH_ANIMATION_REVERSE = new $.gameQuery.Animation({ imageURL: "peanut_march_sprite_transparent_reverse.png", 
                                                     numberOfFrame: PEANUT_MARCH_FRAMES,
                                                     delta: PEANUT_DELTA,
                                                     rate: PEANUT_MARCH_ANIMATION_RATE,
                                                     type: $.gameQuery.ANIMATION_HORIZONTAL });
-      Peanut.GIANT_ANIMATION = new $.gameQuery.Animation({ imageURL: "/images/peanut_giant.png", 
+      Peanut.GIANT_ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_giant.png", 
                                                     numberOfFrame: PEANUT_MARCH_FRAMES,
                                                     delta: PEANUT_DELTA * 5,
                                                     rate: PEANUT_MARCH_ANIMATION_RATE,
@@ -115,6 +118,11 @@
           break;
           
           case 5:
+          max_deploy = 16;
+          measures = 0.25;
+          break;
+          
+          case MARCH_ROUND:
           max_deploy = 0;
           for (p = 0; p < peanut_arr.length; p++) {
             current_peanut = peanut_arr[p];
@@ -124,13 +132,13 @@
             current_peanut.h_dir = current_peanut.h_speed / Math.abs(current_peanut.h_speed)  // +1 or -1
             current_peanut.v_speed = (y_distance / MARCH_LENGTH) * MAIN_CALLBACK_RATE;
             current_peanut.v_dir = current_peanut.v_speed / Math.abs(current_peanut.v_speed)  // +1 or -1
-            current_peanut.sprite.setAnimation(current_peanut.side == LEFT ? Peanut.MARCH_ANIMATION : Peanut.MARCH_ANIMATION_REVERSE);
+            current_peanut.sprite.setAnimation(current_peanut.side == LEFT ? Peanut.MARCH_ANIMATION : Peanut.MARCH_ANIMATION);
           }
           round++;
           last_time = (new Date()).getTime();
           break;
           
-          case 6:
+          case (MARCH_ROUND + 1):
           // Can't rely on time elapsed, because of slowdown!
           
           // if ((new Date()).getTime() - last_time >= MARCH_LENGTH * 2) {
@@ -145,7 +153,7 @@
               peanut_arr[p].sprite.setAnimation(null);
             }
             $.playground().addSprite("giant_peanut", {animation: Peanut.GIANT_ANIMATION,
-                                                posx: CENTER_X - GIANT_PEANUT_WIDTH / 2 - 4 * GIANT_PEANUT_FACTOR,
+                                                posx: CENTER_X - GIANT_PEANUT_WIDTH / 2 - 11 * GIANT_PEANUT_FACTOR,
                                                 posy: CENTER_Y - GIANT_PEANUT_WIDTH / 2,
                                                 height: GIANT_PEANUT_HEIGHT,
                                                 width: GIANT_PEANUT_WIDTH });
@@ -164,7 +172,7 @@
             peanut_arr.push(new Peanut());
             deployed++;
           }
-        } else if (round < MARCH_ROUND && (current_time = new Date()).getTime() - last_time >= MEASURE_LENGTH * MAX_MEASURES) {
+        } else if (round < MARCH_ROUND && (current_time = new Date()).getTime() - last_time >= MEASURE_LENGTH * (MAX_MEASURES + 2)) {
           round++;
           deployed = 0;
         }
@@ -201,7 +209,7 @@
         peanuts = 0;
         peanut_arr = [];
         d = new Date();
-        $("#playground").playground({height: PLAYGROUND_HEIGHT, width: PLAYGROUND_WIDTH});
+        $("#playground").playground({ height: PLAYGROUND_HEIGHT, width: PLAYGROUND_WIDTH, refreshRate: PRR });
         
         
         last_time = null;
@@ -213,6 +221,9 @@
   </head>
   
   <body>
+    <audio id="peanut_sound" preload>
+      <source src="peanut_sound.ogg">
+    </audio>
     <div id="playground" style="border:1px solid">
     </div>
   </body>
