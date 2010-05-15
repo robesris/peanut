@@ -10,6 +10,7 @@
     
       var round;
       var peanuts;
+      var first_deploy_time;
       var last_time;
       var current_time;
       var d;
@@ -17,6 +18,7 @@
       var v_speed = 5;
       var peanut_arr;
       var deployed = 0;
+      var set_button = false;
       
       var LEFT = 0;
       var RIGHT = 1;
@@ -41,8 +43,11 @@
       
       var MARCH_LENGTH = 5000.0;   // length of the "march" sequence in milliseconds
       
-      var MARCH_ROUND = 6;
-      
+      var MORE_PEANUTS_ROUND = 5;
+      var EXTRA_MORE_PEANUTS_ROUND = MORE_PEANUTS_ROUND + 1;
+      var MARCH_ROUND = EXTRA_MORE_PEANUTS_ROUND + 1;
+      var GIANT_PEANUT_ROUND = MARCH_ROUND + 1;
+       
       var PEANUT_SOUND_DURATION = 7 * 1000
       var MAX_MEASURES = 4;       // number of measures in the "song"
       var MEASURE_LENGTH = PEANUT_SOUND_DURATION / MAX_MEASURES;  // length of one measure of the "song" in milliseconds
@@ -65,9 +70,9 @@
         // this.h_speed = 0;
         // this.v_speed = 0;
         
-        peanut_sound = new Audio("peanut_sound.ogg");
-        peanut_sound.load();
-        peanut_sound.play();
+        this.sound = new Audio("peanut_sound.ogg");
+        this.sound.load();
+        this.sound.play();
       }
       Peanut.ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_best_sprite_transparent.png", 
                                                     numberOfFrame: PEANUT_FRAMES,
@@ -117,7 +122,7 @@
           measures = 0.5;
           break;
           
-          case 5:
+          case MORE_PEANUTS_ROUND:
           max_deploy = 16;
           measures = 0.25;
           break;
@@ -138,14 +143,9 @@
           last_time = (new Date()).getTime();
           break;
           
-          case (MARCH_ROUND + 1):
-          // Can't rely on time elapsed, because of slowdown!
-          
-          // if ((new Date()).getTime() - last_time >= MARCH_LENGTH * 2) {
-          //             return false;
-          //           }
-          
+          case GIANT_PEANUT_ROUND:    
           current_peanut = peanut_arr[peanut_arr.length - 1];
+          //alert((CENTER_X - PEANUT_WIDTH / 2) + " " + current_peanut.h_dir + " " + (CENTER_X - PEANUT_WIDTH / 2) * current_peanut.h_dir);
           if (parseFloat(current_peanut.sprite.css("left")) * current_peanut.h_dir >= (CENTER_X - PEANUT_WIDTH / 2) * current_peanut.h_dir &&
               parseFloat(current_peanut.sprite.css("top")) * current_peanut.v_dir >= (CENTER_Y - PEANUT_HEIGHT / 2) * current_peanut.v_dir
               ) {
@@ -166,16 +166,73 @@
           //          break;
         }
         
-        if (deployed < max_deploy) {
-          if (deployed == 0 || (current_time = new Date()).getTime() - last_time >= MEASURE_LENGTH * measures) {
-            last_time = (new Date()).getTime();
-            peanut_arr.push(new Peanut());
-            deployed++;
+        switch(round) {
+          case EXTRA_MORE_PEANUTS_ROUND:
+          pb_div = $("#peanut_button_div")
+          pb = $("#peanut_button");
+          if (set_button == false) {
+            pb.val("EXTRA MORE PEANUTS!!!1");
+            pb.unbind('click');
+            pb.click( function() {
+              for (p = 0; p < 5; p++) {
+                peanut_arr.push(new Peanut());
+              }
+            });
+            set_button = true;
           }
-        } else if (round < MARCH_ROUND && (current_time = new Date()).getTime() - last_time >= MEASURE_LENGTH * (MAX_MEASURES + 2)) {
-          round++;
-          deployed = 0;
+          xpos = parseInt(pb_div.css("left"));
+          pb_div.css("left", "" + (Math.random() * 4 - 2 + 10)  + "px");
+          ypos = parseInt(pb_div.css("top"));
+          pb_div.css("top", "" + (Math.random() * 4 - 2 + 10)  + "px");
+          
+          if (peanut_arr.length >= 100) {
+            pb.val("ACCRUMULATE PEANUT");
+            pb.unbind('click');
+            pb.click( function() {
+              pb.unbind('click');
+              round++;
+              for (p = 0; p < peanut_arr.length; p++) {
+                peanut_arr[p].sound.pause();
+              }
+            })
+          }
+          break;
+          
+          case MORE_PEANUTS_ROUND:
+          pb_div = $("#peanut_button_div")
+          pb = $("#peanut_button");
+          if (!pb_div.is(":visible") && deployed == max_deploy / 2) {     // Display the button when roughly half the peanuts in this round have been deployed
+            pb.click( function() {
+              peanut_arr.push(new Peanut());
+            });
+            pb_div.show();
+          }
+          xpos = parseInt(pb_div.css("left"));
+          pb_div.css("left", "" + (Math.random() * 2 - 1 + 10)  + "px");
+          ypos = parseInt(pb_div.css("top"));
+          pb_div.css("top", "" + (Math.random() * 2 - 1 + 10)  + "px");
+          if (peanut_arr.length >= 40) {
+            round++;
+          }
+          
+          default:
+          if (deployed < max_deploy) {
+            if (deployed == 0) {
+              first_deploy_time = (new Date()).getTime();
+            }
+            if (deployed == 0 || (current_time = new Date()).getTime() - last_time >= MEASURE_LENGTH * measures) {
+              last_time = (new Date()).getTime();
+              peanut_arr.push(new Peanut());
+              deployed++;
+            }
+          // } else if (round < MARCH_ROUND && (current_time = new Date()).getTime() - last_time >= MEASURE_LENGTH * (MAX_MEASURES + 2.0)) {
+          } else if (round < MORE_PEANUTS_ROUND && (current_time = new Date()).getTime() - first_deploy_time >= MEASURE_LENGTH * (MAX_MEASURES + 2.0)) {
+            round++;
+            deployed = 0;
+          }
+          break;
         }
+        
         
         // move peanuts!
         for (x = 0; x < peanut_arr.length; x++) {
@@ -187,10 +244,10 @@
           if (round < MARCH_ROUND) {    // we only want peanuts to bounce off walls before the march phase
             if (posy < 0) {
               posy = 0;
-              peanut_arr[x].v_speed *= -2;
+              peanut_arr[x].v_speed *= -4;
             } else if (posy > PLAYGROUND_HEIGHT - PEANUT_HEIGHT) {
               posy = PLAYGROUND_HEIGHT - PEANUT_HEIGHT;
-              peanut_arr[x].v_speed *= -2;
+              peanut_arr[x].v_speed *= -4;
             }
             
             // don't let peanuts go too fast!
@@ -221,6 +278,9 @@
   </head>
   
   <body>
+    <div id="peanut_button_div" style="position:absolute; display: none; left: 10px; top: 10px; z-index: 99;">
+      <input id="peanut_button" value="more peanuts!" type="button" />
+    </div>
     <audio id="peanut_sound" preload>
       <source src="peanut_sound.ogg">
     </audio>
