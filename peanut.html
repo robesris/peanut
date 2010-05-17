@@ -1,6 +1,11 @@
 <!DOCTYPE HTML>
 <html>
   <head>
+    <script type="text/javascript">
+      if (!(/Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent))) {
+        window.location = "browser_fail.html";
+      }
+    </script>
     <script type="text/javascript" src="jquery-1.4.2.js"></script>
     <script type="text/javascript" src="jquery.gamequery.soundwrapper.html5-0.4.0.js"></script>
     <script type="text/javascript" src="jquery.gamequery-0.4.0.js"></script>
