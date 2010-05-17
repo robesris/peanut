@@ -60,9 +60,14 @@
       var MAX_MEASURES = 4;       // number of measures in the "song"
       var MEASURE_LENGTH = PEANUT_SOUND_DURATION / MAX_MEASURES;  // length of one measure of the "song" in milliseconds
       
-      
+      var peanut_sounds = new Array(100);
       
       function Peanut() {
+        // queue the sound for the NEXT peanut
+        //peanut_sounds[peanuts + 1] = new Audio("peanut_sound.ogg");
+        //this.sound = new Audio("peanut_sound.ogg");
+        //this.sound.load();
+        
         peanuts++;
         side = Math.random() < 0.5 ? LEFT : RIGHT;
         posx = side == LEFT ? -PEANUT_WIDTH : PLAYGROUND_WIDTH;
@@ -80,9 +85,8 @@
         // this.h_speed = 0;
         // this.v_speed = 0;
         
-        this.sound = new Audio("peanut_sound.ogg");
-        this.sound.load();
-        this.sound.play();
+        peanut_sounds[peanuts].play();
+        //this.sound.play();
       }
       Peanut.ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_best_sprite_transparent.png", 
                                                     numberOfFrame: PEANUT_FRAMES,
@@ -217,7 +221,10 @@
               round++;
               for (p = 0; p < peanut_arr.length; p++) {
                 peanut_arr[p].angry = false;
-                peanut_arr[p].sound.pause();
+                
+              }
+              for (p = 0; p < 100; p++) {
+                peanut_sounds[p].pause();
               }
               MARCH_SOUND.play();
             })
@@ -311,8 +318,18 @@
         
         last_time = null;
         deployed = 0;
+        for (p = 0; p < 100; p++) {
+          peanut_sounds[p] = new Audio("peanut_sound.ogg");
+          peanut_sounds[p].load();
+        }
         $.playground().registerCallback(mainCallback, MAIN_CALLBACK_RATE)
-        $.playground().startGame();
+        
+        $("#start").show();
+        $("#playground").click( function() {
+          $('#playground').unbind('click');
+          $("#start").hide();
+          $.playground().startGame();
+        })
       });
     </script>
   </head>
@@ -320,6 +337,10 @@
   <body>
     <div id="peanut_button_div" style="position:absolute; display: none; left: 10px; top: 10px; z-index: 99;">
       <input id="peanut_button" value="more peanuts!" type="button" />
+    </div>
+    <div id="start" style="position:absolute; display: none; left: 340px; top: 200px; z-index: -99; font-size: 25px; text-align: center;">
+      <div>PEANUT ADVENTURE</div>
+      <div>Click anywhere to start.</div>
     </div>
     <div id="the_end" style="position:absolute; display: none; left: 275px; top: 200px; z-index: 99; font-size: 100px;">
       THE END
