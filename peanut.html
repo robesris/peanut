@@ -28,12 +28,13 @@
       var PEANUT_DELTA = 82;
       var PEANUT_ANIMATION_RATE = PRR * 10;
       var PEANUT_MARCH_FRAMES = 2;
-      var PEANUT_MARCH_ANIMATION_RATE = 500;
+      var PEANUT_MARCH_ANIMATION_RATE = 800;
       var PEANUT_HEIGHT = 60;
       var PEANUT_WIDTH = 82;
       var GIANT_PEANUT_FACTOR = 5;    // How many times bigger that normal giant peanut is
       var GIANT_PEANUT_HEIGHT = PEANUT_HEIGHT * GIANT_PEANUT_FACTOR;
       var GIANT_PEANUT_WIDTH = PEANUT_WIDTH * GIANT_PEANUT_FACTOR;
+      var GIANT_PEANUT_MARCH_FRAMES = 8;
       var PEANUT_MAX_Y_SPEED = 50;
       var PLAYGROUND_HEIGHT = 500;
       var PLAYGROUND_WIDTH = 900;
@@ -41,17 +42,20 @@
       var CENTER_Y = PLAYGROUND_HEIGHT / 2;
       var CENTER_X = PLAYGROUND_WIDTH / 2;
       
-      var MARCH_LENGTH = 5000.0;   // length of the "march" sequence in milliseconds
+      var MARCH_LENGTH = 3200.0;   // length of the "march" sequence in milliseconds
       
       var MORE_PEANUTS_ROUND = 5;
       var EXTRA_MORE_PEANUTS_ROUND = MORE_PEANUTS_ROUND + 1;
       var MARCH_ROUND = EXTRA_MORE_PEANUTS_ROUND + 1;
       var GIANT_PEANUT_ROUND = MARCH_ROUND + 1;
+      var FINAL_ROUND = GIANT_PEANUT_ROUND + 1;
        
       var PEANUT_SOUND_DURATION = 7 * 1000
       var MAX_MEASURES = 4;       // number of measures in the "song"
       var MEASURE_LENGTH = PEANUT_SOUND_DURATION / MAX_MEASURES;  // length of one measure of the "song" in milliseconds
       
+      var MARCH_SOUND = new Audio("march_sound.ogg");
+      var GIANT_PEANUT_SOUND = new Audio("giant_peanut_sound.ogg");
       
       function Peanut() {
         peanuts++;
@@ -63,6 +67,7 @@
                                             posy: posy,
                                             height: PEANUT_HEIGHT,
                                             width: PEANUT_WIDTH });
+        this.angry = false;
         this.sprite = $("#peanut_" + peanuts);
         this.h_speed = side == LEFT ? h_speed : -h_speed;
         this.v_speed = (Math.random() * 2) - 1;
@@ -84,6 +89,16 @@
                                                     delta: PEANUT_DELTA,
                                                     rate: PEANUT_ANIMATION_RATE,
                                                     type: $.gameQuery.ANIMATION_HORIZONTAL });
+      Peanut.ANGRY_ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_angry_sprite.png", 
+                                                    numberOfFrame: PEANUT_FRAMES,
+                                                    delta: PEANUT_DELTA,
+                                                    rate: PEANUT_ANIMATION_RATE,
+                                                    type: $.gameQuery.ANIMATION_HORIZONTAL });
+      Peanut.ANGRY_ANIMATION_REVERSE = new $.gameQuery.Animation({ imageURL: "peanut_angry_sprite_reverse.png", 
+                                                    numberOfFrame: PEANUT_FRAMES,
+                                                    delta: PEANUT_DELTA,
+                                                    rate: PEANUT_ANIMATION_RATE,
+                                                    type: $.gameQuery.ANIMATION_HORIZONTAL });
       Peanut.MARCH_ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_march_sprite_transparent.png", 
                                                     numberOfFrame: PEANUT_MARCH_FRAMES,
                                                     delta: PEANUT_DELTA,
@@ -94,11 +109,12 @@
                                                     delta: PEANUT_DELTA,
                                                     rate: PEANUT_MARCH_ANIMATION_RATE,
                                                     type: $.gameQuery.ANIMATION_HORIZONTAL });
-      Peanut.GIANT_ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_giant.png", 
-                                                    numberOfFrame: PEANUT_MARCH_FRAMES,
+      Peanut.GIANT_ANIMATION = new $.gameQuery.Animation({ imageURL: "peanut_giant_march.png", 
+                                                    numberOfFrame: GIANT_PEANUT_MARCH_FRAMES,
                                                     delta: PEANUT_DELTA * 5,
                                                     rate: PEANUT_MARCH_ANIMATION_RATE,
-                                                    type: $.gameQuery.ANIMATION_HORIZONTAL });
+                                                    type: $.gameQuery.ANIMATION_HORIZONTAL |
+                                                          $.gameQuery.ANIMATION_ONCE });
       
       function mainCallback() {
         switch(round) {
@@ -157,6 +173,9 @@
                                                 posy: CENTER_Y - GIANT_PEANUT_WIDTH / 2,
                                                 height: GIANT_PEANUT_HEIGHT,
                                                 width: GIANT_PEANUT_WIDTH });
+            MARCH_SOUND.pause();
+            GIANT_PEANUT_SOUND.addEventListener("ended", function() { $("#the_end").show(); }, false);
+            GIANT_PEANUT_SOUND.play();
             round++;
             return false;
           }
@@ -185,15 +204,17 @@
           ypos = parseInt(pb_div.css("top"));
           pb_div.css("top", "" + (Math.random() * 4 - 2 + 10)  + "px");
           
-          if (peanut_arr.length >= 100) {
+          if (peanut_arr.length >= 65) {
             pb.val("ACCRUMULATE PEANUT");
             pb.unbind('click');
             pb.click( function() {
               pb.unbind('click');
               round++;
               for (p = 0; p < peanut_arr.length; p++) {
+                peanut_arr[p].angry = false;
                 peanut_arr[p].sound.pause();
               }
+              MARCH_SOUND.play();
             })
           }
           break;
@@ -211,7 +232,7 @@
           pb_div.css("left", "" + (Math.random() * 2 - 1 + 10)  + "px");
           ypos = parseInt(pb_div.css("top"));
           pb_div.css("top", "" + (Math.random() * 2 - 1 + 10)  + "px");
-          if (peanut_arr.length >= 40) {
+          if (peanut_arr.length >= 36) {
             round++;
           }
           
@@ -236,28 +257,39 @@
         
         // move peanuts!
         for (x = 0; x < peanut_arr.length; x++) {
-          posx = parseFloat(peanut_arr[x].sprite.css("left")) + peanut_arr[x].h_speed;
-          peanut_arr[x].sprite.css("left", "" + posx + "px");
+          current_peanut = peanut_arr[x]
+          posx = parseFloat(current_peanut.sprite.css("left")) + current_peanut.h_speed;
+          if (current_peanut.angry) {
+            posx += (current_peanut.v_speed / 10) + (Math.random() * 5 - 2.5);
+          }
+          current_peanut.sprite.css("left", "" + posx + "px");
           
-          posy = parseFloat(peanut_arr[x].sprite.css("top")) + peanut_arr[x].v_speed;
-          
+          posy = parseFloat(current_peanut.sprite.css("top")) + current_peanut.v_speed;
+          if (current_peanut.angry) {
+            posy += (current_peanut.v_speed / 10) + (Math.random() * 5 - 2.5);
+          }
           if (round < MARCH_ROUND) {    // we only want peanuts to bounce off walls before the march phase
-            if (posy < 0) {
+      
+            if (posy < 0) {                                           // Peanut hit the top!
+              current_peanut.angry = true;
               posy = 0;
-              peanut_arr[x].v_speed *= -4;
-            } else if (posy > PLAYGROUND_HEIGHT - PEANUT_HEIGHT) {
+              current_peanut.v_speed *= -4;
+              current_peanut.sprite.setAnimation(current_peanut.side == LEFT ? Peanut.ANGRY_ANIMATION : Peanut.ANGRY_ANIMATION_REVERSE);
+            } else if (posy > PLAYGROUND_HEIGHT - PEANUT_HEIGHT) {    // Peanut hit the bottom!
+              current_peanut.angry = true;
               posy = PLAYGROUND_HEIGHT - PEANUT_HEIGHT;
-              peanut_arr[x].v_speed *= -4;
+              current_peanut.v_speed *= -4;
+              current_peanut.sprite.setAnimation(current_peanut.side == LEFT ? Peanut.ANGRY_ANIMATION : Peanut.ANGRY_ANIMATION_REVERSE);
             }
             
             // don't let peanuts go too fast!
-            if (Math.abs(peanut_arr[x].v_speed) > PEANUT_MAX_Y_SPEED) {
-              peanut_arr[x].v_speed = PEANUT_MAX_Y_SPEED * (peanut_arr[x].v_speed / Math.abs(peanut_arr[x].v_speed));
+            if (Math.abs(current_peanut.v_speed) > PEANUT_MAX_Y_SPEED) {
+              current_peanut.v_speed = PEANUT_MAX_Y_SPEED * (current_peanut.v_speed / Math.abs(current_peanut.v_speed));
             }
           }
           
           
-          peanut_arr[x].sprite.css("top", "" + posy + "px");
+          current_peanut.sprite.css("top", "" + posy + "px");
         }
       }
     
@@ -268,6 +300,9 @@
         d = new Date();
         $("#playground").playground({ height: PLAYGROUND_HEIGHT, width: PLAYGROUND_WIDTH, refreshRate: PRR });
         
+        
+        MARCH_SOUND.load();
+        GIANT_PEANUT_SOUND.load();
         
         last_time = null;
         deployed = 0;
@@ -281,8 +316,15 @@
     <div id="peanut_button_div" style="position:absolute; display: none; left: 10px; top: 10px; z-index: 99;">
       <input id="peanut_button" value="more peanuts!" type="button" />
     </div>
+    <div id="the_end" style="position:absolute; display: none; left: 275px; top: 200px; z-index: 99; font-size: 100px;">
+      THE END
+    </div>
     <audio id="peanut_sound" preload>
-      <source src="peanut_sound.ogg">
+      <source src="peanut_sound.ogg" />
+      If you were using <a href="http://www.mozilla.com/en-US/firefox/personal.html">a web browser that didn't suck</a>, you would be hearing audio right now. 
+    </audio>
+    <audio id="march_sound" preload>
+      <source src="march_sound.ogg" />
     </audio>
     <div id="playground" style="border:1px solid">
     </div>
