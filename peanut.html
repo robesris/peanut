@@ -28,13 +28,19 @@
       var PEANUT_DELTA = 82;
       var PEANUT_ANIMATION_RATE = PRR * 10;
       var PEANUT_MARCH_FRAMES = 2;
-      var PEANUT_MARCH_ANIMATION_RATE = 800;
+      var PEANUT_MARCH_ANIMATION_RATE = 875;
       var PEANUT_HEIGHT = 60;
       var PEANUT_WIDTH = 82;
       var GIANT_PEANUT_FACTOR = 5;    // How many times bigger that normal giant peanut is
       var GIANT_PEANUT_HEIGHT = PEANUT_HEIGHT * GIANT_PEANUT_FACTOR;
       var GIANT_PEANUT_WIDTH = PEANUT_WIDTH * GIANT_PEANUT_FACTOR;
       var GIANT_PEANUT_MARCH_FRAMES = 8;
+      
+      var MARCH_SOUND = new Audio("march_sound.ogg");
+      var GIANT_PEANUT_SOUND = new Audio("giant_peanut_sound.ogg");
+      
+      var GIANT_PEANUT_SOUND_DURATION = GIANT_PEANUT_SOUND.duration;
+      var GIANT_PEANUT_MARCH_ANIMATION_RATE = 1000 * GIANT_PEANUT_SOUND_DURATION / 8.0;
       var PEANUT_MAX_Y_SPEED = 50;
       var PLAYGROUND_HEIGHT = 500;
       var PLAYGROUND_WIDTH = 900;
@@ -42,7 +48,7 @@
       var CENTER_Y = PLAYGROUND_HEIGHT / 2;
       var CENTER_X = PLAYGROUND_WIDTH / 2;
       
-      var MARCH_LENGTH = 3200.0;   // length of the "march" sequence in milliseconds
+      var MARCH_LENGTH = 4200.0;   // length of the "march" sequence in milliseconds <-- this isn't really accurate for calculating the speed in the march round, because of slowdown (I think), so the value of this number is more trial and error
       
       var MORE_PEANUTS_ROUND = 5;
       var EXTRA_MORE_PEANUTS_ROUND = MORE_PEANUTS_ROUND + 1;
@@ -54,8 +60,7 @@
       var MAX_MEASURES = 4;       // number of measures in the "song"
       var MEASURE_LENGTH = PEANUT_SOUND_DURATION / MAX_MEASURES;  // length of one measure of the "song" in milliseconds
       
-      var MARCH_SOUND = new Audio("march_sound.ogg");
-      var GIANT_PEANUT_SOUND = new Audio("giant_peanut_sound.ogg");
+      
       
       function Peanut() {
         peanuts++;
